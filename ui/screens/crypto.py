@@ -1,8 +1,6 @@
-cat > ui/screens/crypto.py << 'EOF'
 from textual.screen import Screen
 from textual.containers import Container, Horizontal, Vertical
 from textual.widgets import Static, Label, Button, Input, TextArea, DataTable
-from textual.widgets.dropdown import Dropdown
 from textual import on
 import hashlib
 import base64
@@ -29,6 +27,7 @@ class CryptoScreen(Screen):
         padding: 1;
     }
     """
+    
     def compose(self):
         yield Container(
             Static("🔐 Crypto Toolkit", classes="title"),
@@ -59,8 +58,10 @@ class CryptoScreen(Screen):
             ),
             DataTable(id="crypto_history_table")
         )
+    
     async def on_mount(self):
         await self._load_history()
+    
     async def _load_history(self):
         table = self.query_one("#crypto_history_table")
         table.clear()
@@ -74,10 +75,13 @@ class CryptoScreen(Screen):
                     str(record.get("result", ""))[:50],
                     record["timestamp"][:19]
                 )
+    
     def _get_input(self):
         return self.query_one("#crypto_input").value.strip()
+    
     def _set_result(self, text):
         self.query_one("#crypto_result").text = text
+    
     @on(Button.Pressed, "#hash_md5")
     def on_hash_md5(self):
         text = self._get_input()
@@ -85,6 +89,7 @@ class CryptoScreen(Screen):
             result = hashlib.md5(text.encode()).hexdigest()
             self._set_result(f"MD5: {result}")
             db.add_scan_history("hash", "md5", {"input": text, "result": result})
+    
     @on(Button.Pressed, "#hash_sha1")
     def on_hash_sha1(self):
         text = self._get_input()
@@ -92,6 +97,7 @@ class CryptoScreen(Screen):
             result = hashlib.sha1(text.encode()).hexdigest()
             self._set_result(f"SHA1: {result}")
             db.add_scan_history("hash", "sha1", {"input": text, "result": result})
+    
     @on(Button.Pressed, "#hash_sha256")
     def on_hash_sha256(self):
         text = self._get_input()
@@ -99,6 +105,7 @@ class CryptoScreen(Screen):
             result = hashlib.sha256(text.encode()).hexdigest()
             self._set_result(f"SHA256: {result}")
             db.add_scan_history("hash", "sha256", {"input": text, "result": result})
+    
     @on(Button.Pressed, "#hash_sha512")
     def on_hash_sha512(self):
         text = self._get_input()
@@ -106,6 +113,7 @@ class CryptoScreen(Screen):
             result = hashlib.sha512(text.encode()).hexdigest()
             self._set_result(f"SHA512: {result}")
             db.add_scan_history("hash", "sha512", {"input": text, "result": result})
+    
     @on(Button.Pressed, "#b64_encode")
     def on_b64_encode(self):
         text = self._get_input()
@@ -113,6 +121,7 @@ class CryptoScreen(Screen):
             result = base64.b64encode(text.encode()).decode()
             self._set_result(f"Base64 Encode: {result}")
             db.add_scan_history("base64", "encode", {"input": text, "result": result})
+    
     @on(Button.Pressed, "#b64_decode")
     def on_b64_decode(self):
         text = self._get_input()
@@ -123,6 +132,7 @@ class CryptoScreen(Screen):
                 db.add_scan_history("base64", "decode", {"input": text, "result": result})
             except Exception as e:
                 self._set_result(f"Error: {str(e)}")
+    
     @on(Button.Pressed, "#url_encode")
     def on_url_encode(self):
         text = self._get_input()
@@ -130,6 +140,7 @@ class CryptoScreen(Screen):
             result = urllib.parse.quote(text)
             self._set_result(f"URL Encode: {result}")
             db.add_scan_history("url", "encode", {"input": text, "result": result})
+    
     @on(Button.Pressed, "#url_decode")
     def on_url_decode(self):
         text = self._get_input()
@@ -140,6 +151,7 @@ class CryptoScreen(Screen):
                 db.add_scan_history("url", "decode", {"input": text, "result": result})
             except Exception as e:
                 self._set_result(f"Error: {str(e)}")
+    
     @on(Button.Pressed, "#hex_encode")
     def on_hex_encode(self):
         text = self._get_input()
@@ -147,6 +159,7 @@ class CryptoScreen(Screen):
             result = binascii.hexlify(text.encode()).decode()
             self._set_result(f"Hex Encode: {result}")
             db.add_scan_history("hex", "encode", {"input": text, "result": result})
+    
     @on(Button.Pressed, "#hex_decode")
     def on_hex_decode(self):
         text = self._get_input()
@@ -157,6 +170,7 @@ class CryptoScreen(Screen):
                 db.add_scan_history("hex", "decode", {"input": text, "result": result})
             except Exception as e:
                 self._set_result(f"Error: {str(e)}")
+    
     @on(Button.Pressed, "#jwt_decode")
     def on_jwt_decode(self):
         token = self.query_one("#jwt_input").value.strip()
@@ -168,4 +182,3 @@ class CryptoScreen(Screen):
                 db.add_scan_history("jwt", "decode", {"token": token, "result": result})
             except Exception as e:
                 self.query_one("#jwt_result").text = f"Error: {str(e)}"
-EOF
