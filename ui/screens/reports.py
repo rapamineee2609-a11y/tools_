@@ -1,6 +1,6 @@
 from textual.screen import Screen
 from textual.containers import Container, Horizontal, Vertical
-from textual.widgets import Static, Label, Button, Input, TextArea, DataTable, ProgressBar
+from textual.widgets import Static, Label, Button, Input, TextArea, DataTable
 from textual import on
 import json
 import csv
@@ -8,7 +8,6 @@ import yaml
 import jinja2
 from datetime import datetime
 from pathlib import Path
-import os
 from database.db import db
 from config.settings import settings
 
@@ -39,11 +38,6 @@ class ReportsScreen(Screen):
         color: #00ffcc;
         text-style: bold;
     }
-    .card-value {
-        color: #ff6b6b;
-        text-style: bold;
-        font-size: 16;
-    }
     .button-success {
         background: #00ffcc;
         color: #0a0e17;
@@ -57,8 +51,6 @@ class ReportsScreen(Screen):
     def compose(self):
         yield Container(
             Static("📄 Report Generator Pro", classes="title"),
-            
-            # ===== REPORT CONFIG =====
             Container(
                 Label("📌 Report Configuration", classes="card-title"),
                 Label("Report Name:"),
@@ -82,22 +74,16 @@ class ReportsScreen(Screen):
                 Button("Generate Report", id="generate_report", classes="button-success"),
                 classes="card"
             ),
-            
-            # ===== PREVIEW =====
             Container(
                 Label("📌 Report Preview", classes="card-title"),
                 TextArea(id="preview_result", classes="result-box", read_only=True),
                 classes="card"
             ),
-            
-            # ===== HISTORY =====
             Container(
                 Label("📌 Report History", classes="card-title"),
                 DataTable(id="report_history_table"),
                 classes="card"
             ),
-            
-            # ===== EXPORT =====
             Container(
                 Label("📌 Export / Share", classes="card-title"),
                 Horizontal(
@@ -136,7 +122,6 @@ class ReportsScreen(Screen):
     def _set_preview(self, text):
         self.query_one("#preview_result").text = text
     
-    # ===== FORMAT SELECTION =====
     selected_formats = []
     
     @on(Button.Pressed, "#format_json")
@@ -189,7 +174,6 @@ class ReportsScreen(Screen):
         self.selected_formats = ["json", "csv", "html", "md", "yaml"]
         self._set_preview(f"[+] All formats selected.\nCurrent formats: {', '.join(self.selected_formats)}")
     
-    # ===== INCLUDE DATA =====
     include_data = {"history": True, "config": False, "logs": False}
     
     @on(Button.Pressed, "#include_history")
@@ -215,7 +199,6 @@ class ReportsScreen(Screen):
         self.include_data = {"history": True, "config": True, "logs": True}
         self._set_preview("✅ All data included: History, Config, Logs")
     
-    # ===== GENERATE REPORT =====
     @on(Button.Pressed, "#generate_report")
     async def on_generate_report(self):
         name = self._get_report_name()
@@ -223,7 +206,6 @@ class ReportsScreen(Screen):
             self._set_preview("⚠️ Please select at least one format.")
             return
         
-        # Collect data
         data = {
             "name": name,
             "timestamp": datetime.now().isoformat(),
@@ -244,7 +226,6 @@ class ReportsScreen(Screen):
         result = f"📊 Report Generated: {name}\n"
         result += "=" * 50 + "\n\n"
         
-        # Generate each format
         for fmt in self.selected_formats:
             try:
                 if fmt == "json":
@@ -252,7 +233,6 @@ class ReportsScreen(Screen):
                     with open(path, "w") as f:
                         json.dump(data, f, indent=2, default=str)
                     result += f"✅ JSON: {path}\n"
-                
                 elif fmt == "csv":
                     path = report_path / f"{name}.csv"
                     with open(path, "w", newline="") as f:
@@ -268,72 +248,45 @@ class ReportsScreen(Screen):
                                 record.get("timestamp", "")
                             ])
                     result += f"✅ CSV: {path}\n"
-                
                 elif fmt == "html":
                     path = report_path / f"{name}.html"
                     template_str = """
-                    <!DOCTYPE html>
-                    <html>
-                    <head><title>{{ name }}</title>
-                    <style>
-                        body { font-family: Arial; background: #0a0e17; color: #00ffcc; padding: 20px; }
-                        h1 { color: #00ffcc; }
-                        table { border-collapse: collapse; width: 100%; }
-                        th, td { border: 1px solid #00ffcc; padding: 8px; text-align: left; }
-                        th { background: #00ffcc; color: #0a0e17; }
-                    </style>
-                    </head>
-                    <body>
-                        <h1>📄 {{ name }}</h1>
-                        <p>Generated: {{ timestamp }}</p>
-                        <p>Version: {{ report_version }}</p>
-                        <h2>Scan History</h2>
-                        <table>
-                        <tr><th>ID</th><th>Type</th><th>Target</th><th>Status</th><th>Timestamp</th></tr>
-                        {% for record in history %}
-                        <tr><td>{{ record.id }}</td><td>{{ record.scan_type }}</td><td>{{ record.target }}</td><td>{{ record.status }}</td><td>{{ record.timestamp }}</td></tr>
-                        {% endfor %}
-                        </table>
-                    </body>
-                    </html>
+                    <html><head><title>{{ name }}</title>
+                    <style>body{background:#0a0e17;color:#00ffcc;padding:20px;font-family:Arial}
+                    h1{color:#00ffcc}table{border-collapse:collapse;width:100%}
+                    th,td{border:1px solid #00ffcc;padding:8px;text-align:left}
+                    th{background:#00ffcc;color:#0a0e17}</style></head>
+                    <body><h1>{{ name }}</h1><p>Generated: {{ timestamp }}</p>
+                    <h2>Scan History</h2><table><tr><th>ID</th><th>Type</th><th>Target</th><th>Status</th><th>Timestamp</th></tr>
+                    {% for record in history %}<tr><td>{{ record.id }}</td><td>{{ record.scan_type }}</td><td>{{ record.target }}</td><td>{{ record.status }}</td><td>{{ record.timestamp }}</td></tr>{% endfor %}
+                    </table></body></html>
                     """
                     template = jinja2.Template(template_str)
                     with open(path, "w") as f:
                         f.write(template.render(data))
                     result += f"✅ HTML: {path}\n"
-                
                 elif fmt == "md":
                     path = report_path / f"{name}.md"
                     with open(path, "w") as f:
-                        f.write(f"# {name}\n\n")
-                        f.write(f"**Generated:** {data['timestamp']}\n\n")
-                        f.write(f"**Version:** {data['report_version']}\n\n")
-                        f.write("## Scan History\n\n")
-                        f.write("| ID | Type | Target | Status | Timestamp |\n")
-                        f.write("|----|------|--------|--------|-----------|\n")
+                        f.write(f"# {name}\n\nGenerated: {data['timestamp']}\n\n## Scan History\n\n| ID | Type | Target | Status | Timestamp |\n|----|------|--------|--------|-----------|\n")
                         for record in data.get("history", []):
                             f.write(f"| {record.get('id','')} | {record.get('scan_type','')} | {record.get('target','')} | {record.get('status','')} | {record.get('timestamp','')} |\n")
                     result += f"✅ Markdown: {path}\n"
-                
                 elif fmt == "yaml":
                     path = report_path / f"{name}.yaml"
                     with open(path, "w") as f:
                         yaml.dump(data, f, default_flow_style=False)
                     result += f"✅ YAML: {path}\n"
-            
             except Exception as e:
                 result += f"❌ {fmt.upper()} error: {str(e)}\n"
         
-        # Save to database
         db.add_scan_history("report", name, {"formats": self.selected_formats, "path": str(report_path)})
-        
         self._set_preview(result)
         await self._load_history()
     
-    # ===== EXPORT FUNCTIONS =====
     @on(Button.Pressed, "#export_pdf")
     def on_export_pdf(self):
-        self._set_preview("⚠️ PDF export requires additional libraries (weasyprint). Feature coming soon.")
+        self._set_preview("⚠️ PDF export requires additional libraries. Coming soon.")
     
     @on(Button.Pressed, "#export_html")
     def on_export_html(self):
